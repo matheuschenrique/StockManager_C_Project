@@ -10,13 +10,14 @@ typedef enum {
 }main_options;
 
 typedef enum {
-    SEARCH_OPTION_NAME = 1,
+    SEARCH_OPTION_BACK = 0,
+    SEARCH_OPTION_NAME,
     SEARCH_OPTION_CODE,
-    SEARCH_OPTION_BACK,
 } search_options;
 
 main_options menu();
 search_options search_menu();
 void splash();
+void clear_input_buffer();
 
 #endif // MENU_H

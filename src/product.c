@@ -4,28 +4,43 @@
 #include "product.h"
 #include "menu.h"
 
+/*
+    Inits the list
+    Must be called at the beginning of the code
+*/
 ProductList *list_init() {
-    ProductList *p = (struct ProductList*)malloc(sizeof(ProductList));
+    ProductList *p = (struct ProductList*)malloc(sizeof(*p));
+    if(p == NULL) {
+        printf("Falha na alocacao de memoria");
+        exit(1); // Encerra o programa com código de erro 1
+    }
     p->head = NULL;
     return p;
 }
 
-void free_list(ProductList *l) {
-    ProductNode *current = l->head;
+/*
+    Frees the list
+    Must be called at the beginning of the code
+*/
+void free_list(ProductList *list) {
+    ProductNode *current = list->head;
     while(current != NULL) {
         ProductNode *next = current->next;
         free(current);
         current = next;
     }
-    free(l);
+    free(list);
 }
 
-void create_node(ProductList *l, ProductNode *newnode) {
-    if(l->head == NULL) {
+/*
+    Create a new node and increments the code
+*/
+void create_node(ProductList *list, ProductNode *newnode) {
+    if(list->head == NULL) {
         newnode->product.code = 1;
-        l->head = newnode;
+        list->head = newnode;
     } else {
-        ProductNode* last = l->head;
+        ProductNode* last = list->head;
         while(last->next != NULL) {
             last = last->next;
         }
@@ -34,64 +49,108 @@ void create_node(ProductList *l, ProductNode *newnode) {
     }
 }
 
-void insert_product(ProductList *l) {
-    ProductNode *newnode = (struct ProductNode*)malloc(sizeof(ProductNode));
+/*
+    Insert a new product in the list
+    All parameters must be entered correctly
+*/
+void insert_product(ProductList *list) {
+    ProductNode *newnode = (struct ProductNode*)malloc(sizeof(*newnode));
+    if(newnode == NULL) {
+        printf("Falha na alocacao de memoria");
+        exit(1); // Encerra o programa com código de erro 1
+    }
+
+    clear_input_buffer();
+
     printf("Digite o nome do produto: ");
-    scanf(" %[^\n]", newnode->product.name);
+    fgets(newnode->product.name, sizeof(newnode->product.name), stdin);
+    newnode->product.name[strcspn(newnode->product.name, "\n")] = '\0';
+
     printf("Digite a quantidade do produto em estoque: ");
-    scanf("%d", &newnode->product.quantity);
+    while(scanf("%d", &newnode->product.quantity) != 1 || newnode->product.quantity < 0) {
+        printf("Entrada invalida, digite um valor valido: ");
+        clear_input_buffer();
+    }
+
     printf("Digite o preco de venda do produto: ");
-    scanf("%f", &newnode->product.price);
+    while(scanf("%f", &newnode->product.price) != 1 || newnode->product.price <= 0.0f) {
+        printf("Entrada invalida, digite um valor valido: ");
+        clear_input_buffer();
+    }
     newnode->next = NULL;
 
-    create_node(l, newnode);
+    create_node(list, newnode);
 }
 
-void print_product(const Product *p) {
-    printf("Nome: %s, Código: %d, Quantidade: %d, Preço: %.2f\n",
-               p->name, p->code, p->quantity, p->price);
+void print_header() {
+    printf("-----------------------------------------------------------------------\n");
+    printf("%-20s %-10s %-10s %-10s\n", "Nome", "Codigo", "Qtd", "Preco");
+    printf("-----------------------------------------------------------------------\n");
 }
 
-void print_list(const ProductList *l) {
-    ProductNode* product = l->head;
-    while(product != NULL) {
-        print_product(&(product->product));
+/*
+    Print the product in console
+*/
+void display_product(const Product *product) {
+    printf("%-20s %-10d %-10d %.2f\n",
+           product->name, product->code, product->quantity, product->price);
+    printf("-----------------------------------------------------------------------\n");
+}
+
+/*
+    Print all products of the list
+*/
+void print_list(const ProductList *list) {
+
+    print_header();
+    
+    ProductNode* product = list->head;
+    while (product != NULL) {
+        display_product(&(product->product));
         product = product->next;
     }
+    
 }
-
-ProductNode *search_by_name(const ProductList *l, const char *name) {
-    ProductNode* p = l->head;
+/*
+    Search the product in the list based on the name
+*/
+ProductNode *search_by_name(const ProductList *list, const char *name) {
+    ProductNode* p = list->head;
     while(p != NULL) {
         if(strcmp(p->product.name, name) == 0) {
-            printf("Produto encontrado\n");
-            print_product(&(p->product));
+            print_header();
+            display_product(&(p->product));
             return p;
             break;
         }
         p = p->next;
     }
-    printf("Produto nao encotnrado\n");
+    printf("Produto nao encontrado\n");
     return NULL;
 }
 
-ProductNode *search_by_code(const ProductList *l, const int code) {
-    ProductNode* p = l->head;
+/*
+    Search the product in the list based on the code
+*/
+ProductNode *search_by_code(const ProductList *list, const int code) {
+    ProductNode* p = list->head;
     while(p != NULL) {
         if(p->product.code == code) {
-            printf("Produto encontrado\n");
-            print_product(&(p->product));
+            print_header();
+            display_product(&(p->product));
             return p;
             break;
         }
         p = p->next;
     }
-    printf("Produto nao encotnrado\n");
+    printf("Produto nao encontrado\n");
     return NULL;
 }
 
-// Função que busca um produto pelo código
-void search_product(const ProductList *l) {
+/*
+    Search the product in the list
+*/
+void search_product(const ProductList *list) {
     char name[MAXCHAR];
     int code;
     search_options option;
@@ -101,31 +160,51 @@ void search_product(const ProductList *l) {
         {
         case SEARCH_OPTION_NAME:
             printf("Digite o nome do produto: ");
-            scanf(" %[^\n]", name);
-            (void)search_by_name(l, name);
+            while(scanf(" %[^\n]", name) != 1 || sizeof(name) == 0) {
+                printf("Entrada invalida, digite um valor valido: ");
+                clear_input_buffer();
+            }
+            (void)search_by_name(list, name);
             break;
         case SEARCH_OPTION_CODE:
-            printf("Digite o código do produto: ");
-            scanf("%d", &code);
-            (void)search_by_code(l, code);
+            printf("Digite o codigo do produto: ");
+            while(scanf("%d", &code) != 1 || code < 0) {
+                printf("Entrada invalida, digite um valor valido: ");
+                clear_input_buffer();
+            }
+            (void)search_by_code(list, code);
             break;
         case SEARCH_OPTION_BACK:
         default:
             break;
         }
-    }while(option != 0);
+    }while(option != SEARCH_OPTION_BACK);
 }
 
-void update_product(Product *p) {
+/*
+    Optade the quantity of the product
+*/
+void update_product(Product *product) {
     printf("Digite a quantidade do produto em estoque: ");
-    scanf("%d", &(p->quantity));
+    while(scanf("%d", &(product->quantity)) != 1 || product->quantity < 0) {
+        printf("Entrada invalida, digite um valor valido: ");
+        clear_input_buffer();
+    }
 }
 
-void update_stock(ProductList *l) {
+/*
+    Request a code and update the quantity of the product
+*/
+void update_stock(ProductList *list) {
     int code;
-    printf("Digite o código do produto: ");
-    scanf("%d", &code);
-    ProductNode* p = search_by_code(l, code);
-    update_product(&(p->product));
-    print_product(&(p->product));
+    printf("Digite o codigo do produto: ");
+    while(scanf("%d", &code) != 1 || code < 0) {
+        printf("Entrada invalida, digite um valor valido: ");
+        clear_input_buffer();
+    }
+    ProductNode* p = search_by_code(list, code);
+    if(p != NULL) {
+        update_product(&(p->product));
+        display_product(&(p->product));
+    }
 }

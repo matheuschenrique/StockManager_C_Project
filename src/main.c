@@ -31,7 +31,7 @@ int main() {
                 printf("Opcao invalida!\n");
                 break;
         }
-    } while (option != 0);
+    } while (option != OPTION_EXIT);
 
     free_list(productList);
     return 0;

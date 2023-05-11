@@ -22,7 +22,7 @@ typedef struct ProductList{
 ProductList *list_init();
 void free_list(ProductList *l);
 void insert_product(ProductList *l);
-void print_product(const Product *p);
+void display_product(const Product *p);
 void print_list(const ProductList *l);
 void search_product(const ProductList *l);
 void update_stock(ProductList *l);
