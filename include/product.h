@@ -3,11 +3,21 @@
 
 #define MAXCHAR 1000
 
-typedef struct Product{
+typedef enum {
+    TYPE_DEFAULT = 0,
+    TYPE_BOOK,
+    TYPE_ELECTRONICS,
+    TYPE_CLOTHING,
+    TYPE_FOOD,
+    TYPE_OTHER,
+} product_type;
+
+typedef struct Product {
     int code;
     char name[MAXCHAR];
     int quantity;
     float price;
+    product_type type;
 } Product;
 
 typedef struct ProductNode{

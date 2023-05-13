@@ -66,6 +66,19 @@ void insert_product(ProductList *list) {
     fgets(newnode->product.name, sizeof(newnode->product.name), stdin);
     newnode->product.name[strcspn(newnode->product.name, "\n")] = '\0';
 
+    printf("Escolha o tipo de produto:\n");
+    printf("1 - Livro\n");
+    printf("2 - Eletronicos\n");
+    printf("3 - Vestuario\n");
+    printf("4 - Alimentos\n");
+    printf("5 - Outros\n");
+    printf("Opcao escolhida: ");
+    while (scanf("%d", (int*)&newnode->product.type) != 1 || newnode->product.type < TYPE_DEFAULT || newnode->product.type > TYPE_OTHER) {
+        printf("Entrada invalida, digite um valor valido: ");
+        clear_input_buffer();
+    }
+    printf("\n");
+
     printf("Digite a quantidade do produto em estoque: ");
     while(scanf("%d", &newnode->product.quantity) != 1 || newnode->product.quantity < 0) {
         printf("Entrada invalida, digite um valor valido: ");
@@ -84,16 +97,37 @@ void insert_product(ProductList *list) {
 
 void print_header() {
     printf("-----------------------------------------------------------------------\n");
-    printf("%-20s %-10s %-10s %-10s\n", "Nome", "Codigo", "Qtd", "Preco");
+    printf("%-20s %-20s %-10s %-10s %-10s\n", "Nome", "Tipo", "Codigo", "Qtd", "Preco");
     printf("-----------------------------------------------------------------------\n");
 }
 
 /*
     Print the product in console
 */
-void display_product(const Product *product) {
-    printf("%-20s %-10d %-10d %.2f\n",
-           product->name, product->code, product->quantity, product->price);
+void display_product(const Product* product) {
+    const char* type_str = "";
+    switch (product->type) {
+        case TYPE_BOOK:
+            type_str = "Livro";
+            break;
+        case TYPE_ELECTRONICS:
+            type_str = "Eletronicos";
+            break;
+        case TYPE_CLOTHING:
+            type_str = "Roupas";
+            break;
+        case TYPE_FOOD:
+            type_str = "Alimentos";
+            break;
+        case TYPE_OTHER:
+            type_str = "Outros";
+            break;
+        default:
+            break;
+    }
+
+    printf("%-20s %-20s %-10d %-10d %.2f\n",
+           product->name, type_str, product->code, product->quantity, product->price);
     printf("-----------------------------------------------------------------------\n");
 }
 
