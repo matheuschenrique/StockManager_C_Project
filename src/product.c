@@ -4,6 +4,8 @@
 #include "product.h"
 #include "menu.h"
 
+const float tax_table[] = {0.0, 0.05, 0.1, 0.2, 0.08, 0.15};
+
 /*
     Inits the list
     Must be called at the beginning of the code
@@ -49,6 +51,30 @@ void create_node(ProductList *list, ProductNode *newnode) {
     }
 }
 
+void calculate_total_tax(Product *product) {
+    switch (product->type) {
+        case TYPE_BOOK:
+            product->total_tax = product->quantity * product->price * tax_table[TYPE_BOOK]; // 5% de taxa para livros
+            break;
+        case TYPE_ELECTRONICS:
+            product->total_tax = product->quantity * product->price * tax_table[TYPE_ELECTRONICS]; // 10% de taxa para eletrônicos
+            break;
+        case TYPE_CLOTHING:
+            product->total_tax = product->quantity * product->price * tax_table[TYPE_CLOTHING]; // 20% de taxa para vestuário
+            break;
+        case TYPE_FOOD:
+            product->total_tax = product->quantity * product->price * tax_table[TYPE_FOOD]; // 8% de taxa para alimentos
+            break;
+        case TYPE_OTHER:
+            product->total_tax = product->quantity * product->price * tax_table[TYPE_OTHER]; // 15% de taxa para outros produtos
+            break;
+        case TYPE_DEFAULT:
+        default:
+            product->total_tax = tax_table[TYPE_DEFAULT]; // Valor padrão para tipos de produto desconhecidos
+            break;
+    }
+}
+
 /*
     Insert a new product in the list
     All parameters must be entered correctly
@@ -90,15 +116,18 @@ void insert_product(ProductList *list) {
         printf("Entrada invalida, digite um valor valido: ");
         clear_input_buffer();
     }
+
+    calculate_total_tax(&(newnode->product));
+
     newnode->next = NULL;
 
     create_node(list, newnode);
 }
 
 void print_header() {
-    printf("-----------------------------------------------------------------------\n");
-    printf("%-20s %-20s %-10s %-10s %-10s\n", "Nome", "Tipo", "Codigo", "Qtd", "Preco");
-    printf("-----------------------------------------------------------------------\n");
+    printf("-----------------------------------------------------------------------------------------\n");
+    printf("%-20s %-20s %-10s %-10s %-10s %-10s\n", "Nome", "Tipo", "Codigo", "Qtd", "Preco", "Imposto");
+    printf("-----------------------------------------------------------------------------------------\n");
 }
 
 /*
@@ -126,9 +155,9 @@ void display_product(const Product* product) {
             break;
     }
 
-    printf("%-20s %-20s %-10d %-10d %.2f\n",
-           product->name, type_str, product->code, product->quantity, product->price);
-    printf("-----------------------------------------------------------------------\n");
+    printf("%-20s %-20s %-10d %-10d %-10.2f %-10.2f\n",
+           product->name, type_str, product->code, product->quantity, product->price, product->total_tax);
+    printf("-----------------------------------------------------------------------------------------\n");
 }
 
 /*

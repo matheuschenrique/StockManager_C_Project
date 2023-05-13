@@ -18,6 +18,7 @@ typedef struct Product {
     int quantity;
     float price;
     product_type type;
+    float total_tax;
 } Product;
 
 typedef struct ProductNode{
