@@ -2,6 +2,8 @@
 #define PRODUCT_H
 
 #define MAXCHAR 1000
+#define YEAR_IN_DAYS 365
+#define MAX_SIZE_LENGTH 3
 
 typedef enum {
     TYPE_DEFAULT = 0,
@@ -16,9 +18,13 @@ typedef struct Product {
     int code;
     char name[MAXCHAR];
     int quantity;
-    float price;
+    float cost_price;
+    float sale_price;
     product_type type;
-    float total_tax;
+    int hard_cover;
+    struct tm *manufacturing_date;
+    char size[MAX_SIZE_LENGTH];
+    struct tm *expiration_date;
 } Product;
 
 typedef struct ProductNode{
