@@ -21,10 +21,12 @@ typedef struct Product {
     float cost_price;
     float sale_price;
     product_type type;
-    int hard_cover;
-    struct tm *manufacturing_date;
-    char size[MAX_SIZE_LENGTH];
-    struct tm *expiration_date;
+    union {
+        int hard_cover;
+        char size[MAX_SIZE_LENGTH];
+        struct tm *manufacturing_date;
+        struct tm *expiration_date;
+    } details;
 } Product;
 
 typedef struct ProductNode{

@@ -100,15 +100,15 @@ void get_clothing_size(Product *product) {
     clear_input_buffer();
     printf("Digite o tamanho da roupa (P, M, G, GG, XG, XXG): ");
     do {
-        if(fgets(product->size, sizeof(product->size), stdin) == NULL) {
+        if(fgets(product->details.size, sizeof(product->details.size), stdin) == NULL) {
             printf("Entrada invalida, digite um valor valido: ");
             clear_input_buffer();
             continue;
         }
-        product->size[strcspn(product->size, "\n")] = '\0';
-        if (strcmp(product->size, "P") != 0 && strcmp(product->size, "M") != 0 &&
-            strcmp(product->size, "G") != 0 && strcmp(product->size, "GG") != 0 &&
-            strcmp(product->size, "XG") != 0 && strcmp(product->size, "XXG") != 0) {
+        product->details.size[strcspn(product->details.size, "\n")] = '\0';
+        if (strcmp(product->details.size, "P") != 0 && strcmp(product->details.size, "M") != 0 &&
+            strcmp(product->details.size, "G") != 0 && strcmp(product->details.size, "GG") != 0 &&
+            strcmp(product->details.size, "XG") != 0 && strcmp(product->details.size, "XXG") != 0) {
             printf("Entrada invalida, digite um valor valido: ");
             clear_input_buffer();
             continue;
@@ -120,7 +120,7 @@ void get_clothing_size(Product *product) {
 void get_cover_style(Product *product) {
     printf("O livro possui capa dura? ");
     clear_input_buffer();
-    while (scanf("%d", &product->hard_cover) != 1 || product->hard_cover < 0 || product->hard_cover > 1) {
+    while (scanf("%d", &product->details.hard_cover) != 1 || product->details.hard_cover < 0 || product->details.hard_cover > 1) {
         printf("Entrada invalida, digite um valor valido: ");
         clear_input_buffer();
     }
@@ -128,24 +128,24 @@ void get_cover_style(Product *product) {
 
 void get_manufacturing_date(Product *product) {
     printf("Digite a data de fabricacao do produto (no formato DD/MM/YYYY): ");
-    product->manufacturing_date = malloc(sizeof(struct tm));
-    insert_date(product->manufacturing_date);
+    product->details.manufacturing_date = malloc(sizeof(struct tm));
+    insert_date(product->details.manufacturing_date);
 }
 
 void get_expiration_date(Product *product) {
     printf("Digite a data de validade do produto (no formato DD/MM/YYYY): ");
-    product->expiration_date = malloc(sizeof(struct tm));
-    insert_date(product->expiration_date);
+    product->details.expiration_date = malloc(sizeof(struct tm));
+    insert_date(product->details.expiration_date);
 }
 
 void calculate_total_price(Product *product) {
     int diferenca = 0;
     switch (product->type) {
         case TYPE_BOOK: // preco relacionado à quantidade de paginas
-            product->sale_price = product->cost_price * (1 + tax_table[TYPE_BOOK] + (0.1f * product->hard_cover));
+            product->sale_price = product->cost_price * (1 + tax_table[TYPE_BOOK] + (0.1f * product->details.hard_cover));
             break;
         case TYPE_ELECTRONICS: // preco relacionado à data de fabricacao
-            diferenca = difftime(mktime(get_current_time()), mktime(product->manufacturing_date)) / (60 * 60 * 24);
+            diferenca = difftime(mktime(get_current_time()), mktime(product->details.manufacturing_date)) / (60 * 60 * 24);
             if (diferenca <= (int)(YEAR_IN_DAYS / 2)) {
                 product->sale_price = product->cost_price * (1 + tax_table[TYPE_ELECTRONICS] + 0.1f);
             } else if (diferenca <= YEAR_IN_DAYS * 2) {
@@ -155,22 +155,22 @@ void calculate_total_price(Product *product) {
             }
             break;
         case TYPE_CLOTHING: // preco relacionado ao tamanho
-            if (strcmp(product->size, "P") == 0) {
+            if (strcmp(product->details.size, "P") == 0) {
                 product->sale_price = product->cost_price *(1 + tax_table[TYPE_CLOTHING] + 0.02f);
                 break;
-            } else if (strcmp(product->size, "M") == 0) {
+            } else if (strcmp(product->details.size, "M") == 0) {
                 product->sale_price = product->cost_price *(1 + tax_table[TYPE_CLOTHING] + 0.04f);
                 break;
-            } else if (strcmp(product->size, "G") == 0) {
+            } else if (strcmp(product->details.size, "G") == 0) {
                 product->sale_price = product->cost_price *(1 + tax_table[TYPE_CLOTHING] + 0.06f);
                 break;
-            } else if (strcmp(product->size, "GG") == 0) {
+            } else if (strcmp(product->details.size, "GG") == 0) {
                 product->sale_price = product->cost_price *(1 + tax_table[TYPE_CLOTHING] + 0.08f);
                 break;
-            } else if (strcmp(product->size, "XG") == 0) {
+            } else if (strcmp(product->details.size, "XG") == 0) {
                 product->sale_price = product->cost_price *(1 + tax_table[TYPE_CLOTHING] + 0.10f);
                 break;
-            } else if (strcmp(product->size, "XXG") == 0) {
+            } else if (strcmp(product->details.size, "XXG") == 0) {
                 product->sale_price = product->cost_price *(1 + tax_table[TYPE_CLOTHING] + 0.12f);
                 break;
             } else {
@@ -178,7 +178,7 @@ void calculate_total_price(Product *product) {
             }
             break;
         case TYPE_FOOD: // preco relacionado à data de validade
-            diferenca = difftime(mktime(product->expiration_date), mktime(get_current_time())) / (60 * 60 * 24);
+            diferenca = difftime(mktime(product->details.expiration_date), mktime(get_current_time())) / (60 * 60 * 24);
             if (diferenca <= 10) {
                 product->sale_price = product->cost_price * (1 + tax_table[TYPE_FOOD]);
             } else if (diferenca <= 30) {
@@ -281,27 +281,27 @@ void display_product(const Product* product) {
             type_str = "Livro";
             info = "Capa Dura:";
             printf("%-20s %-20s %-10d %-10d %-10.2f %-10.2f %s %-10d",
-                product->name, type_str, product->code, product->quantity, product->cost_price, product->sale_price, info, product->hard_cover);
+                product->name, type_str, product->code, product->quantity, product->cost_price, product->sale_price, info, product->details.hard_cover);
             break;
         case TYPE_ELECTRONICS:
             type_str = "Eletronicos";
             info = "Fabricacao:";
             printf("%-20s %-20s %-10d %-10d %-10.2f %-10.2f %s",
                 product->name, type_str, product->code, product->quantity, product->cost_price, product->sale_price, info);
-            print_date(product->manufacturing_date);
+            print_date(product->details.manufacturing_date);
             break;
         case TYPE_CLOTHING:
             type_str = "Roupas";
             info = "Tamanho:";
             printf("%-20s %-20s %-10d %-10d %-10.2f %-10.2f %s %-20s",
-                product->name, type_str, product->code, product->quantity, product->cost_price, product->sale_price, info, product->size);
+                product->name, type_str, product->code, product->quantity, product->cost_price, product->sale_price, info, product->details.size);
             break;
         case TYPE_FOOD:
             type_str = "Alimentos";
             info = "Validade:";
             printf("%-20s %-20s %-10d %-10d %-10.2f %-10.2f %s",
                 product->name, type_str, product->code, product->quantity, product->cost_price, product->sale_price, info);
-            print_date(product->expiration_date);
+            print_date(product->details.expiration_date);
             break;
         case TYPE_OTHER:
             type_str = "Outros";
