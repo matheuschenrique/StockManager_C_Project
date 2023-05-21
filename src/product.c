@@ -1,96 +1,166 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
+#include "list.h"
 #include "product.h"
 #include "menu.h"
 
 const float tax_table[] = {0.0, 0.05, 0.1, 0.2, 0.08, 0.15};
 
-/*
-    Inits the list
-    Must be called at the beginning of the code
-*/
-ProductList *list_init() {
-    ProductList *p = (struct ProductList*)malloc(sizeof(*p));
-    if(p == NULL) {
-        printf("Falha na alocacao de memoria");
-        exit(1); // Encerra o programa com código de erro 1
-    }
-    p->head = NULL;
-    return p;
+void print_date(const struct tm *date) {
+    printf("%d/%d/%d", date->tm_mday, date->tm_mon + 1, date->tm_year + 1900);
 }
 
-/*
-    Frees the list
-    Must be called at the beginning of the code
-*/
-void free_list(ProductList *list) {
-    ProductNode *current = list->head;
-    while(current != NULL) {
-        ProductNode *next = current->next;
-        free(current);
-        current = next;
-    }
-    free(list);
-}
+void insert_date(struct tm *destiny) {
+    int day, month, year;
+    char date_string[11];
 
-/*
-    Create a new node and increments the code
-*/
-void create_node(ProductList *list, ProductNode *newnode) {
-    if(list->head == NULL) {
-        newnode->product.code = 1;
-        list->head = newnode;
-    } else {
-        ProductNode* last = list->head;
-        while(last->next != NULL) {
-            last = last->next;
+    clear_input_buffer();
+
+    do {
+        if (fgets(date_string, sizeof(date_string), stdin) == NULL) {
+            printf("Erro na leitura da data\n");
+            clear_input_buffer();
+            continue;
         }
-        last->next = newnode;
-        newnode->product.code = last->product.code + 1;
+
+        if (sscanf(date_string, "%d/%d/%d", &day, &month, &year) != 3) {
+            printf("Formato de data incorreto. Tente novamente.\n");
+            continue;
+        }
+
+        // Verifica se os valores estão dentro de intervalos validos
+        if (year < 1900 || month < 1 || month > 12 || day < 1 || day > 31) {
+            printf("Data invalida. Tente novamente.\n");
+            continue;
+        }
+
+        memset(destiny, 0, sizeof(struct tm));  // Initialize the struct with zeros
+
+        destiny->tm_mday = day;
+        destiny->tm_mon = month - 1;
+        destiny->tm_year = year - 1900;
+
+        break;
+
+    } while (1);
+}
+
+struct tm *get_current_time() {
+    time_t current_time = time(NULL);
+    return localtime(&current_time);
+}
+
+void get_clothing_size(Product *product) {
+    clear_input_buffer();
+    printf("Digite o tamanho da roupa (P, M, G, GG, XG, XXG): ");
+    do {
+        if(fgets(product->details.size, sizeof(product->details.size), stdin) == NULL) {
+            printf("Entrada invalida, digite um valor valido: ");
+            clear_input_buffer();
+            continue;
+        }
+        product->details.size[strcspn(product->details.size, "\n")] = '\0';
+        if (strcmp(product->details.size, "P") != 0 && strcmp(product->details.size, "M") != 0 &&
+            strcmp(product->details.size, "G") != 0 && strcmp(product->details.size, "GG") != 0 &&
+            strcmp(product->details.size, "XG") != 0 && strcmp(product->details.size, "XXG") != 0) {
+            printf("Entrada invalida, digite um valor valido: ");
+            clear_input_buffer();
+            continue;
+        }
+        break;
+    } while (1);
+}
+
+void get_cover_style(Product *product) {
+    printf("O livro possui capa dura? ");
+    clear_input_buffer();
+    while (scanf("%d", &product->details.hard_cover) != 1 || product->details.hard_cover < 0 || product->details.hard_cover > 1) {
+        printf("Entrada invalida, digite um valor valido: ");
+        clear_input_buffer();
     }
 }
 
-void calculate_total_tax(Product *product) {
+void get_manufacturing_date(Product *product) {
+    printf("Digite a data de fabricacao do produto (no formato DD/MM/YYYY): ");
+    product->details.manufacturing_date = malloc(sizeof(struct tm));
+    insert_date(product->details.manufacturing_date);
+}
+
+void get_expiration_date(Product *product) {
+    printf("Digite a data de validade do produto (no formato DD/MM/YYYY): ");
+    product->details.expiration_date = malloc(sizeof(struct tm));
+    insert_date(product->details.expiration_date);
+}
+
+void calculate_total_price(Product *product) {
+    int diferenca = 0;
     switch (product->type) {
-        case TYPE_BOOK:
-            product->total_tax = product->quantity * product->price * tax_table[TYPE_BOOK]; // 5% de taxa para livros
+        case TYPE_BOOK: // preco relacionado à quantidade de paginas
+            product->sale_price = product->cost_price * (1 + tax_table[TYPE_BOOK] + (0.1f * product->details.hard_cover));
             break;
-        case TYPE_ELECTRONICS:
-            product->total_tax = product->quantity * product->price * tax_table[TYPE_ELECTRONICS]; // 10% de taxa para eletrônicos
+        case TYPE_ELECTRONICS: // preco relacionado à data de fabricacao
+            diferenca = difftime(mktime(get_current_time()), mktime(product->details.manufacturing_date)) / (60 * 60 * 24);
+            if (diferenca <= (int)(YEAR_IN_DAYS / 2)) {
+                product->sale_price = product->cost_price * (1 + tax_table[TYPE_ELECTRONICS] + 0.1f);
+            } else if (diferenca <= YEAR_IN_DAYS * 2) {
+                product->sale_price = product->cost_price * (1 + tax_table[TYPE_ELECTRONICS] + 0.05f);
+            } else {
+                product->sale_price = product->cost_price * (1 + tax_table[TYPE_ELECTRONICS]);
+            }
             break;
-        case TYPE_CLOTHING:
-            product->total_tax = product->quantity * product->price * tax_table[TYPE_CLOTHING]; // 20% de taxa para vestuário
+        case TYPE_CLOTHING: // preco relacionado ao tamanho
+            if (strcmp(product->details.size, "P") == 0) {
+                product->sale_price = product->cost_price *(1 + tax_table[TYPE_CLOTHING] + 0.02f);
+                break;
+            } else if (strcmp(product->details.size, "M") == 0) {
+                product->sale_price = product->cost_price *(1 + tax_table[TYPE_CLOTHING] + 0.04f);
+                break;
+            } else if (strcmp(product->details.size, "G") == 0) {
+                product->sale_price = product->cost_price *(1 + tax_table[TYPE_CLOTHING] + 0.06f);
+                break;
+            } else if (strcmp(product->details.size, "GG") == 0) {
+                product->sale_price = product->cost_price *(1 + tax_table[TYPE_CLOTHING] + 0.08f);
+                break;
+            } else if (strcmp(product->details.size, "XG") == 0) {
+                product->sale_price = product->cost_price *(1 + tax_table[TYPE_CLOTHING] + 0.10f);
+                break;
+            } else if (strcmp(product->details.size, "XXG") == 0) {
+                product->sale_price = product->cost_price *(1 + tax_table[TYPE_CLOTHING] + 0.12f);
+                break;
+            } else {
+                printf("Entrada invalida, digite um valor valido: ");
+            }
             break;
-        case TYPE_FOOD:
-            product->total_tax = product->quantity * product->price * tax_table[TYPE_FOOD]; // 8% de taxa para alimentos
+        case TYPE_FOOD: // preco relacionado à data de validade
+            diferenca = difftime(mktime(product->details.expiration_date), mktime(get_current_time())) / (60 * 60 * 24);
+            if (diferenca <= 10) {
+                product->sale_price = product->cost_price * (1 + tax_table[TYPE_FOOD]);
+            } else if (diferenca <= 30) {
+                product->sale_price = product->cost_price * (1 + tax_table[TYPE_FOOD] + 0.05f);
+            } else if (diferenca <= 90) {
+                product->sale_price = product->cost_price * (1 + tax_table[TYPE_FOOD] + 0.1f);
+            } else {
+                product->sale_price = product->cost_price * (1 + tax_table[TYPE_FOOD]);
+            }
             break;
         case TYPE_OTHER:
-            product->total_tax = product->quantity * product->price * tax_table[TYPE_OTHER]; // 15% de taxa para outros produtos
-            break;
         case TYPE_DEFAULT:
         default:
-            product->total_tax = tax_table[TYPE_DEFAULT]; // Valor padrão para tipos de produto desconhecidos
+            product->sale_price = product->cost_price * (1 + tax_table[TYPE_OTHER]); // 15% de taxa para outros produtos
             break;
     }
 }
 
-/*
-    Insert a new product in the list
-    All parameters must be entered correctly
-*/
-void insert_product(ProductList *list) {
-    ProductNode *newnode = (struct ProductNode*)malloc(sizeof(*newnode));
-    if(newnode == NULL) {
-        printf("Falha na alocacao de memoria");
-        exit(1); // Encerra o programa com código de erro 1
-    }
+void insert_product(t_List *list) {
+    Product *product = (Product*)malloc(sizeof(Product));
 
     clear_input_buffer();
 
     printf("Digite o nome do produto: ");
-    fgets(newnode->product.name, sizeof(newnode->product.name), stdin);
-    newnode->product.name[strcspn(newnode->product.name, "\n")] = '\0';
+    fgets(product->name, sizeof(product->name), stdin);
+    product->name[strcspn(product->name, "\n")] = '\0';
 
     printf("Escolha o tipo de produto:\n");
     printf("1 - Livro\n");
@@ -99,121 +169,149 @@ void insert_product(ProductList *list) {
     printf("4 - Alimentos\n");
     printf("5 - Outros\n");
     printf("Opcao escolhida: ");
-    while (scanf("%d", (int*)&newnode->product.type) != 1 || newnode->product.type < TYPE_DEFAULT || newnode->product.type > TYPE_OTHER) {
+    while (scanf("%d", (int*)&product->type) != 1 || product->type < TYPE_DEFAULT || product->type > TYPE_OTHER) {
         printf("Entrada invalida, digite um valor valido: ");
         clear_input_buffer();
     }
     printf("\n");
 
+    switch(product->type) {
+        case TYPE_BOOK:
+            get_cover_style(product);
+            break;
+        case TYPE_ELECTRONICS:
+            get_manufacturing_date(product);
+            break;
+        case TYPE_CLOTHING:
+            get_clothing_size(product);
+            break;
+        case TYPE_FOOD:
+            get_expiration_date(product);
+            break;
+        case TYPE_OTHER:
+        case TYPE_DEFAULT:
+        default:
+            break;
+    }
+
     printf("Digite a quantidade do produto em estoque: ");
-    while(scanf("%d", &newnode->product.quantity) != 1 || newnode->product.quantity < 0) {
+    while(scanf("%d", &product->quantity) != 1 || product->quantity < 0) {
         printf("Entrada invalida, digite um valor valido: ");
         clear_input_buffer();
     }
 
     printf("Digite o preco de venda do produto: ");
-    while(scanf("%f", &newnode->product.price) != 1 || newnode->product.price <= 0.0f) {
+    while(scanf("%f", &product->cost_price) != 1 || product->cost_price <= 0.0f) {
         printf("Entrada invalida, digite um valor valido: ");
         clear_input_buffer();
     }
 
-    calculate_total_tax(&(newnode->product));
+    calculate_total_price(product);
 
-    newnode->next = NULL;
+    product->code = list->size + 1;
 
-    create_node(list, newnode);
+    (void)list_push(list, product, sizeof(Product));
 }
 
 void print_header() {
-    printf("-----------------------------------------------------------------------------------------\n");
-    printf("%-20s %-20s %-10s %-10s %-10s %-10s\n", "Nome", "Tipo", "Codigo", "Qtd", "Preco", "Imposto");
-    printf("-----------------------------------------------------------------------------------------\n");
+    printf("-------------------------------------------------------------------------------------------------------------\n");
+    printf("%-20s %-20s %-10s %-10s %-10s %-10s %-20s\n", "Nome", "Tipo", "Codigo", "Qtd", "Custo", "Venda", "Info");
+    printf("-------------------------------------------------------------------------------------------------------------\n");
 }
 
-/*
-    Print the product in console
-*/
 void display_product(const Product* product) {
     const char* type_str = "";
+    const char* info = "";
     switch (product->type) {
         case TYPE_BOOK:
             type_str = "Livro";
+            info = "Capa Dura:";
+            printf("%-20s %-20s %-10d %-10d %-10.2f %-10.2f %s %-10d",
+                product->name, type_str, product->code, product->quantity, product->cost_price, product->sale_price, info, product->details.hard_cover);
             break;
         case TYPE_ELECTRONICS:
             type_str = "Eletronicos";
+            info = "Fabricacao:";
+            printf("%-20s %-20s %-10d %-10d %-10.2f %-10.2f %s",
+                product->name, type_str, product->code, product->quantity, product->cost_price, product->sale_price, info);
+            print_date(product->details.manufacturing_date);
             break;
         case TYPE_CLOTHING:
             type_str = "Roupas";
+            info = "Tamanho:";
+            printf("%-20s %-20s %-10d %-10d %-10.2f %-10.2f %s %-20s",
+                product->name, type_str, product->code, product->quantity, product->cost_price, product->sale_price, info, product->details.size);
             break;
         case TYPE_FOOD:
             type_str = "Alimentos";
+            info = "Validade:";
+            printf("%-20s %-20s %-10d %-10d %-10.2f %-10.2f %s",
+                product->name, type_str, product->code, product->quantity, product->cost_price, product->sale_price, info);
+            print_date(product->details.expiration_date);
             break;
         case TYPE_OTHER:
             type_str = "Outros";
+            printf("%-20s %-20s %-10d %-10d %-10.2f %-10.2f",
+                    product->name, type_str, product->code, product->quantity, product->cost_price, product->sale_price);
             break;
         default:
             break;
     }
 
-    printf("%-20s %-20s %-10d %-10d %-10.2f %-10.2f\n",
-           product->name, type_str, product->code, product->quantity, product->price, product->total_tax);
-    printf("-----------------------------------------------------------------------------------------\n");
+    printf("\n-------------------------------------------------------------------------------------------------------------\n");
 }
 
-/*
-    Print all products of the list
-*/
-void print_list(const ProductList *list) {
+void list_print(const t_List *list) {
 
     print_header();
     
-    ProductNode* product = list->head;
-    while (product != NULL) {
-        display_product(&(product->product));
-        product = product->next;
-    }
-    
+    t_Node* node = list->head;
+    Product *p;
+
+    while (node != NULL) {
+        p = (Product*)node->data;
+        display_product(p);
+        node = node->next;
+    } 
 }
-/*
-    Search the product in the list based on the name
-*/
-ProductNode *search_by_name(const ProductList *list, const char *name) {
-    ProductNode* p = list->head;
-    while(p != NULL) {
-        if(strcmp(p->product.name, name) == 0) {
+
+t_Node *search_by_name(const t_List *list, const char *name) {
+    t_Node* node = list->head;
+    Product *p;
+
+    while(node != NULL) {
+        p = (Product*)node->data;
+        if(strcmp(p->name, name) == 0) {
             print_header();
-            display_product(&(p->product));
-            return p;
+            display_product(p);
+            return node;
             break;
         }
-        p = p->next;
+        node = node->next;
     }
     printf("Produto nao encontrado\n");
     return NULL;
 }
 
-/*
-    Search the product in the list based on the code
-*/
-ProductNode *search_by_code(const ProductList *list, const int code) {
-    ProductNode* p = list->head;
-    while(p != NULL) {
-        if(p->product.code == code) {
+t_Node *search_by_code(const t_List *list, const int code) {
+    t_Node* node = list->head;
+    Product *p;
+
+    while(node != NULL) {
+        p = (Product*)node->data;
+        if(p->code == code) {
             print_header();
-            display_product(&(p->product));
-            return p;
+            display_product(p);
+            return node;
             break;
         }
-        p = p->next;
+        node = node->next;
     }
     printf("Produto nao encontrado\n");
     return NULL;
 }
 
-/*
-    Search the product in the list
-*/
-void search_product(const ProductList *list) {
+void search_product(const t_List *list) {
     char name[MAXCHAR];
     int code;
     search_options option;
@@ -244,9 +342,6 @@ void search_product(const ProductList *list) {
     }while(option != SEARCH_OPTION_BACK);
 }
 
-/*
-    Optade the quantity of the product
-*/
 void update_product(Product *product) {
     printf("Digite a quantidade do produto em estoque: ");
     while(scanf("%d", &(product->quantity)) != 1 || product->quantity < 0) {
@@ -255,19 +350,17 @@ void update_product(Product *product) {
     }
 }
 
-/*
-    Request a code and update the quantity of the product
-*/
-void update_stock(ProductList *list) {
+void update_stock(t_List *list) {
     int code;
     printf("Digite o codigo do produto: ");
     while(scanf("%d", &code) != 1 || code < 0) {
         printf("Entrada invalida, digite um valor valido: ");
         clear_input_buffer();
     }
-    ProductNode* p = search_by_code(list, code);
-    if(p != NULL) {
-        update_product(&(p->product));
-        display_product(&(p->product));
+    t_Node* node = search_by_code(list, code);
+    if(node != NULL) {
+        Product *p = (Product*)node->data;
+        update_product(p);
+        display_product(p);
     }
 }

@@ -3,10 +3,11 @@
 #include <string.h>
 #include "product.h"
 #include "menu.h"
+#include "list.h"
 
 int main() {
     main_options option;
-    ProductList* productList = list_init();
+    t_List* productList = list_init();
     do {
         splash();
         option = menu();
@@ -22,7 +23,7 @@ int main() {
                 update_stock(productList);
                 break;
             case OPTION_SHOW_PRODUCTS:
-                print_list(productList);
+                list_print(productList);
                 break;
             case OPTION_EXIT:
                 printf("Saindo...\n");
