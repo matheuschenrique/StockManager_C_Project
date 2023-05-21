@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include "list.h"
 #include "product.h"
 #include "menu.h"
 
@@ -49,51 +50,6 @@ void insert_date(struct tm *destiny) {
 struct tm *get_current_time() {
     time_t current_time = time(NULL);
     return localtime(&current_time);
-}
-
-/*
-    Inits the list
-    Must be called at the beginning of the code
-*/
-ProductList *list_init() {
-    ProductList *p = (struct ProductList*)malloc(sizeof(*p));
-    if(p == NULL) {
-        printf("Falha na alocacao de memoria");
-        exit(1); // Encerra o programa com código de erro 1
-    }
-    p->head = NULL;
-    return p;
-}
-
-/*
-    Frees the list
-    Must be called at the beginning of the code
-*/
-void free_list(ProductList *list) {
-    ProductNode *current = list->head;
-    while(current != NULL) {
-        ProductNode *next = current->next;
-        free(current);
-        current = next;
-    }
-    free(list);
-}
-
-/*
-    Create a new node and increments the code
-*/
-void create_node(ProductList *list, ProductNode *newnode) {
-    if(list->head == NULL) {
-        newnode->product.code = 1;
-        list->head = newnode;
-    } else {
-        ProductNode* last = list->head;
-        while(last->next != NULL) {
-            last = last->next;
-        }
-        last->next = newnode;
-        newnode->product.code = last->product.code + 1;
-    }
 }
 
 void get_clothing_size(Product *product) {
@@ -197,23 +153,14 @@ void calculate_total_price(Product *product) {
     }
 }
 
-/*
-    Insert a new product in the list
-    All parameters must be entered correctly
-*/
-void insert_product(ProductList *list) {
-    ProductNode* newnode = (ProductNode*)malloc(sizeof(*newnode));
-    if (newnode == NULL) {
-        printf("Falha na alocação de memória");
-        exit(1); // Encerra o programa com código de erro 1
-    }
-    newnode->next = NULL;
+void insert_product(t_List *list) {
+    Product *product = (Product*)malloc(sizeof(Product));
 
     clear_input_buffer();
 
     printf("Digite o nome do produto: ");
-    fgets(newnode->product.name, sizeof(newnode->product.name), stdin);
-    newnode->product.name[strcspn(newnode->product.name, "\n")] = '\0';
+    fgets(product->name, sizeof(product->name), stdin);
+    product->name[strcspn(product->name, "\n")] = '\0';
 
     printf("Escolha o tipo de produto:\n");
     printf("1 - Livro\n");
@@ -222,24 +169,24 @@ void insert_product(ProductList *list) {
     printf("4 - Alimentos\n");
     printf("5 - Outros\n");
     printf("Opcao escolhida: ");
-    while (scanf("%d", (int*)&newnode->product.type) != 1 || newnode->product.type < TYPE_DEFAULT || newnode->product.type > TYPE_OTHER) {
+    while (scanf("%d", (int*)&product->type) != 1 || product->type < TYPE_DEFAULT || product->type > TYPE_OTHER) {
         printf("Entrada invalida, digite um valor valido: ");
         clear_input_buffer();
     }
     printf("\n");
 
-    switch(newnode->product.type) {
+    switch(product->type) {
         case TYPE_BOOK:
-            get_cover_style(&newnode->product);
+            get_cover_style(product);
             break;
         case TYPE_ELECTRONICS:
-            get_manufacturing_date(&newnode->product);
+            get_manufacturing_date(product);
             break;
         case TYPE_CLOTHING:
-            get_clothing_size(&newnode->product);
+            get_clothing_size(product);
             break;
         case TYPE_FOOD:
-            get_expiration_date(&newnode->product);
+            get_expiration_date(product);
             break;
         case TYPE_OTHER:
         case TYPE_DEFAULT:
@@ -248,20 +195,22 @@ void insert_product(ProductList *list) {
     }
 
     printf("Digite a quantidade do produto em estoque: ");
-    while(scanf("%d", &newnode->product.quantity) != 1 || newnode->product.quantity < 0) {
+    while(scanf("%d", &product->quantity) != 1 || product->quantity < 0) {
         printf("Entrada invalida, digite um valor valido: ");
         clear_input_buffer();
     }
 
     printf("Digite o preco de venda do produto: ");
-    while(scanf("%f", &newnode->product.cost_price) != 1 || newnode->product.cost_price <= 0.0f) {
+    while(scanf("%f", &product->cost_price) != 1 || product->cost_price <= 0.0f) {
         printf("Entrada invalida, digite um valor valido: ");
         clear_input_buffer();
     }
 
-    calculate_total_price(&(newnode->product));
+    calculate_total_price(product);
 
-    create_node(list, newnode);
+    product->code = list->size + 1;
+
+    (void)list_push(list, product, sizeof(Product));
 }
 
 void print_header() {
@@ -270,9 +219,6 @@ void print_header() {
     printf("-------------------------------------------------------------------------------------------------------------\n");
 }
 
-/*
-    Print the product in console
-*/
 void display_product(const Product* product) {
     const char* type_str = "";
     const char* info = "";
@@ -315,60 +261,57 @@ void display_product(const Product* product) {
     printf("\n-------------------------------------------------------------------------------------------------------------\n");
 }
 
-/*
-    Print all products of the list
-*/
-void print_list(const ProductList *list) {
+void list_print(const t_List *list) {
 
     print_header();
     
-    ProductNode* product = list->head;
-    while (product != NULL) {
-        display_product(&(product->product));
-        product = product->next;
-    }
-    
+    t_Node* node = list->head;
+    Product *p;
+
+    while (node != NULL) {
+        p = (Product*)node->data;
+        display_product(p);
+        node = node->next;
+    } 
 }
-/*
-    Search the product in the list based on the name
-*/
-ProductNode *search_by_name(const ProductList *list, const char *name) {
-    ProductNode* p = list->head;
-    while(p != NULL) {
-        if(strcmp(p->product.name, name) == 0) {
+
+t_Node *search_by_name(const t_List *list, const char *name) {
+    t_Node* node = list->head;
+    Product *p;
+
+    while(node != NULL) {
+        p = (Product*)node->data;
+        if(strcmp(p->name, name) == 0) {
             print_header();
-            display_product(&(p->product));
-            return p;
+            display_product(p);
+            return node;
             break;
         }
-        p = p->next;
+        node = node->next;
     }
     printf("Produto nao encontrado\n");
     return NULL;
 }
 
-/*
-    Search the product in the list based on the code
-*/
-ProductNode *search_by_code(const ProductList *list, const int code) {
-    ProductNode* p = list->head;
-    while(p != NULL) {
-        if(p->product.code == code) {
+t_Node *search_by_code(const t_List *list, const int code) {
+    t_Node* node = list->head;
+    Product *p;
+
+    while(node != NULL) {
+        p = (Product*)node->data;
+        if(p->code == code) {
             print_header();
-            display_product(&(p->product));
-            return p;
+            display_product(p);
+            return node;
             break;
         }
-        p = p->next;
+        node = node->next;
     }
     printf("Produto nao encontrado\n");
     return NULL;
 }
 
-/*
-    Search the product in the list
-*/
-void search_product(const ProductList *list) {
+void search_product(const t_List *list) {
     char name[MAXCHAR];
     int code;
     search_options option;
@@ -399,9 +342,6 @@ void search_product(const ProductList *list) {
     }while(option != SEARCH_OPTION_BACK);
 }
 
-/*
-    Optade the quantity of the product
-*/
 void update_product(Product *product) {
     printf("Digite a quantidade do produto em estoque: ");
     while(scanf("%d", &(product->quantity)) != 1 || product->quantity < 0) {
@@ -410,19 +350,17 @@ void update_product(Product *product) {
     }
 }
 
-/*
-    Request a code and update the quantity of the product
-*/
-void update_stock(ProductList *list) {
+void update_stock(t_List *list) {
     int code;
     printf("Digite o codigo do produto: ");
     while(scanf("%d", &code) != 1 || code < 0) {
         printf("Entrada invalida, digite um valor valido: ");
         clear_input_buffer();
     }
-    ProductNode* p = search_by_code(list, code);
-    if(p != NULL) {
-        update_product(&(p->product));
-        display_product(&(p->product));
+    t_Node* node = search_by_code(list, code);
+    if(node != NULL) {
+        Product *p = (Product*)node->data;
+        update_product(p);
+        display_product(p);
     }
 }

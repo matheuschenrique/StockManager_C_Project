@@ -29,24 +29,15 @@ typedef struct Product {
     } details;
 } Product;
 
-typedef struct ProductNode{
-    Product product;
-    struct ProductNode *next;
-} ProductNode;
+typedef struct t_List t_List;
+typedef struct t_Node t_Node;
 
-typedef struct ProductList{
-    ProductNode *head;
-} ProductList;
-
-ProductList *list_init();
-void free_list(ProductList *l);
-void insert_product(ProductList *l);
-void display_product(const Product *p);
-void print_list(const ProductList *l);
-void search_product(const ProductList *l);
-void update_stock(ProductList *l);
-ProductNode *search_by_name(const ProductList *l, const char *name);
-ProductNode *search_by_code(const ProductList *l, const int code);
-
+void insert_product(t_List *list);
+void list_print(const t_List *list);
+void display_product(const Product* product);
+void search_product(const t_List *list);
+void update_stock(t_List *list);
+t_Node *search_by_name(const t_List *list, const char *name);
+t_Node *search_by_code(const t_List *list, const int code);
 
 #endif // PRODUCT_H
