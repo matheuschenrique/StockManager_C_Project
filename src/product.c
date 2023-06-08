@@ -142,7 +142,7 @@ void calculate_total_price(Product *product) {
             } else if (diferenca <= 90) {
                 product->sale_price = product->cost_price * (1 + tax_table[TYPE_FOOD] + 0.1f);
             } else {
-                product->sale_price = product->cost_price * (1 + tax_table[TYPE_FOOD]);
+                product->sale_price = product->cost_price * (1 + tax_table[TYPE_FOOD] + 0.15f);
             }
             break;
         case TYPE_OTHER:
@@ -230,27 +230,27 @@ void display_product(const Product* product) {
                 product->name, type_str, product->code, product->quantity, product->cost_price, product->sale_price, info, product->details.hard_cover);
             break;
         case TYPE_ELECTRONICS:
-            type_str = "Eletronicos";
+            type_str = "Eletronico";
             info = "Fabricacao:";
             printf("%-20s %-20s %-10d %-10d %-10.2f %-10.2f %s",
                 product->name, type_str, product->code, product->quantity, product->cost_price, product->sale_price, info);
             print_date(product->details.manufacturing_date);
             break;
         case TYPE_CLOTHING:
-            type_str = "Roupas";
+            type_str = "Roupa";
             info = "Tamanho:";
             printf("%-20s %-20s %-10d %-10d %-10.2f %-10.2f %s %-20s",
                 product->name, type_str, product->code, product->quantity, product->cost_price, product->sale_price, info, product->details.size);
             break;
         case TYPE_FOOD:
-            type_str = "Alimentos";
+            type_str = "Alimento";
             info = "Validade:";
             printf("%-20s %-20s %-10d %-10d %-10.2f %-10.2f %s",
                 product->name, type_str, product->code, product->quantity, product->cost_price, product->sale_price, info);
             print_date(product->details.expiration_date);
             break;
         case TYPE_OTHER:
-            type_str = "Outros";
+            type_str = "Outro";
             printf("%-20s %-20s %-10d %-10d %-10.2f %-10.2f",
                     product->name, type_str, product->code, product->quantity, product->cost_price, product->sale_price);
             break;
