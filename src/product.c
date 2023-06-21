@@ -53,24 +53,40 @@ struct tm *get_current_time() {
 }
 
 void get_clothing_size(Product *product) {
+    char size[MAX_SIZE_LENGTH];
     clear_input_buffer();
     printf("Digite o tamanho da roupa (P, M, G, GG, XG, XXG): ");
     do {
-        if(fgets(product->details.size, sizeof(product->details.size), stdin) == NULL) {
+        if(fgets(size, sizeof(size), stdin) == NULL) {
             printf("Entrada invalida, digite um valor valido: ");
             clear_input_buffer();
             continue;
         }
-        product->details.size[strcspn(product->details.size, "\n")] = '\0';
-        if (strcmp(product->details.size, "P") != 0 && strcmp(product->details.size, "M") != 0 &&
-            strcmp(product->details.size, "G") != 0 && strcmp(product->details.size, "GG") != 0 &&
-            strcmp(product->details.size, "XG") != 0 && strcmp(product->details.size, "XXG") != 0) {
+        size[strcspn(size, "\n")] = '\0';
+        if (strcmp(size, "P") == 0) {
+            product->details.size = SIZE_P;
+        } else if (strcmp(size, "M") == 0) {
+            product->details.size = SIZE_M;
+        } else if (strcmp(size, "G") == 0) {
+            product->details.size = SIZE_G;
+        } else if (strcmp(size, "GG") == 0) {
+            product->details.size = SIZE_GG;
+        } else if (strcmp(size, "XG") == 0) {
+            product->details.size = SIZE_XG;
+        } else if (strcmp(size, "XXG") == 0) {
+            product->details.size = SIZE_XXG;
+        } else {
             printf("Entrada invalida, digite um valor valido: ");
             clear_input_buffer();
             continue;
         }
         break;
     } while (1);
+}
+
+const char* get_size_from_int(clothing_size size) {
+    static const char* size_map[] = {"P", "M", "G", "GG", "XG", "XXG"};
+    return size_map[size];
 }
 
 void get_cover_style(Product *product) {
@@ -111,26 +127,28 @@ void calculate_total_price(Product *product) {
             }
             break;
         case TYPE_CLOTHING: // preco relacionado ao tamanho
-            if (strcmp(product->details.size, "P") == 0) {
-                product->sale_price = product->cost_price *(1 + tax_table[TYPE_CLOTHING] + 0.02f);
-                break;
-            } else if (strcmp(product->details.size, "M") == 0) {
-                product->sale_price = product->cost_price *(1 + tax_table[TYPE_CLOTHING] + 0.04f);
-                break;
-            } else if (strcmp(product->details.size, "G") == 0) {
-                product->sale_price = product->cost_price *(1 + tax_table[TYPE_CLOTHING] + 0.06f);
-                break;
-            } else if (strcmp(product->details.size, "GG") == 0) {
-                product->sale_price = product->cost_price *(1 + tax_table[TYPE_CLOTHING] + 0.08f);
-                break;
-            } else if (strcmp(product->details.size, "XG") == 0) {
-                product->sale_price = product->cost_price *(1 + tax_table[TYPE_CLOTHING] + 0.10f);
-                break;
-            } else if (strcmp(product->details.size, "XXG") == 0) {
-                product->sale_price = product->cost_price *(1 + tax_table[TYPE_CLOTHING] + 0.12f);
-                break;
-            } else {
-                printf("Entrada invalida, digite um valor valido: ");
+            switch(product->details.size) {
+                case SIZE_P:
+                    product->sale_price = product->cost_price *(1 + tax_table[TYPE_CLOTHING] + 0.02f);
+                    break;
+                case SIZE_M:
+                    product->sale_price = product->cost_price *(1 + tax_table[TYPE_CLOTHING] + 0.04f);
+                    break;
+                case SIZE_G:
+                    product->sale_price = product->cost_price *(1 + tax_table[TYPE_CLOTHING] + 0.06f);
+                    break;
+                case SIZE_GG:
+                    product->sale_price = product->cost_price *(1 + tax_table[TYPE_CLOTHING] + 0.08f);
+                    break;
+                case SIZE_XG:
+                    product->sale_price = product->cost_price *(1 + tax_table[TYPE_CLOTHING] + 0.10f);
+                    break;
+                case SIZE_XXG:
+                    product->sale_price = product->cost_price *(1 + tax_table[TYPE_CLOTHING] + 0.12f);
+                    break;
+                default:
+                    printf("Entrada invalida, digite um valor valido: ");
+                    break;
             }
             break;
         case TYPE_FOOD: // preco relacionado à data de validade
@@ -239,8 +257,9 @@ void display_product(const Product* product) {
         case TYPE_CLOTHING:
             type_str = "Roupa";
             info = "Tamanho:";
-            printf("%-20s %-20s %-10d %-10d %-10.2f %-10.2f %s %-20s",
-                product->name, type_str, product->code, product->quantity, product->cost_price, product->sale_price, info, product->details.size);
+            printf("%-20s %-20s %-10d %-10d %-10.2f %-10.2f %s ",
+                product->name, type_str, product->code, product->quantity, product->cost_price, product->sale_price, info);
+            printf("%-20s", get_size_from_int(product->details.size));
             break;
         case TYPE_FOOD:
             type_str = "Alimento";
