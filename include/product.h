@@ -14,6 +14,15 @@ typedef enum {
     TYPE_OTHER,
 } product_type;
 
+typedef enum {
+    SIZE_P = 0,
+    SIZE_M,
+    SIZE_G,
+    SIZE_GG,
+    SIZE_XG,
+    SIZE_XXG
+} clothing_size;
+
 typedef struct Product {
     int code;
     char name[MAXCHAR];
@@ -23,7 +32,7 @@ typedef struct Product {
     product_type type;
     union {
         int hard_cover;
-        char size[MAX_SIZE_LENGTH];
+        clothing_size size;
         struct tm *manufacturing_date;
         struct tm *expiration_date;
     } details;
